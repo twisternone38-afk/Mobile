@@ -34,11 +34,29 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build APK
-        run: gradle --no-daemon assembleDebug
+      - name: Find and build Android project
+        shell: bash
+        run: |
+          FILE=$(find . -name settings.gradle -not -path '*/.gradle/*' -print -quit)
+
+          if [ -z "$FILE" ]; then
+            echo "ERROR: settings.gradle not found!"
+            echo "Check that Android project files were uploaded."
+            find . -maxdepth 3 -type f
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$FILE")
+          echo "Found project: $PROJECT_DIR"
+
+          cd "$PROJECT_DIR"
+          gradle --no-daemon assembleDebug
+
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            "$GITHUB_WORKSPACE/MobileGameEmulator.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: MobileGameEmulator-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: MobileGameEmulator.apk
